@@ -1,0 +1,6 @@
+Nome arquivo: C:/Users/Altobelli/Documents/CEDERJ_2019_LEONARDO_SANTANA_VIEIRA/bases/toybase.txt
+Matriz formato: [3,9]
+Tempo criar matriz entrada (s):0.0070035
+Tempo calcular em CPU (s):0.0614821
+Matriz Xproject: [9 , 8 ]
+Matriz Yproject: [3 , 8 ]
