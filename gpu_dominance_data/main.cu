@@ -1,4 +1,5 @@
 #include <cusp/array2d.h>
+#include <cusp/functional.h>
 #include <cusp/print.h>
 #include <fstream>
 #include <iostream>
@@ -60,6 +61,18 @@ int main(int argc, char *argv[]) {
 	}
 
 	ifsArquivo.close();
-	cusp::print(matriz.values);
+
+	cusp::print(matriz);
+
+	thrust::transform(matriz.values.begin(), matriz.values.end(),
+			matriz.values.begin(), cusp::multiplies_value<int>(-2));
+
+	cusp::print(matriz);
+
+	thrust::transform(matriz.values.begin(), matriz.values.end(),
+			matriz.values.begin(), cusp::plus_value<int>(intNrColunas + 1));
+
+	cusp::print(matriz);
+
 	return 0;
 }
