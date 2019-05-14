@@ -159,6 +159,10 @@ int main(int argc, char *argv[]) {
 
 	cusp::print(matriz);
 
+	Array2d E(intNrLinhas, intNrColunas);
+
+	E = matriz;
+
 	thrust::transform(matriz.values.begin(), matriz.values.end(),
 			matriz.values.begin(), cusp::multiplies_value<int>(-2));
 
@@ -365,6 +369,16 @@ int main(int argc, char *argv[]) {
 	}
 
 	cusp::print(x_normed);
+
+	int fr = intNrColunas * (intNrColunas - 1);
+
+	cout << "fr" << endl << fr << endl;
+
+	Array2d y_normed;
+
+	cusp::multiply(E, x_normed, y_normed);
+
+	cusp::print(y_normed);
 
 	return 0;
 }
