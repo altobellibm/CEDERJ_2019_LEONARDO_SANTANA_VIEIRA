@@ -72,20 +72,20 @@ namespace ds {
             _super(),
             E_(data) {
 
-            std::ofstream myfile;
-            myfile.open ("E_.txt");
-                myfile << E_;
-            myfile.close();
+//            std::ofstream myfile;
+//            myfile.open ("E_.txt");
+//                myfile << E_;
+//            myfile.close();
 
             E_ *= -2;
-            myfile.open ("E_vezes-2.txt");
-                myfile << E_;
-            myfile.close();
+//            myfile.open ("E_vezes-2.txt");
+//                myfile << E_;
+//            myfile.close();
 
             E_ += matrix_type::Constant(E_.rows() ,E_.cols(), E_.cols() + 1);
-            myfile.open ("E_+col.txt");
-                myfile << E_;
-            myfile.close();
+//            myfile.open ("E_+col.txt");
+//                myfile << E_;
+//            myfile.close();
 
         }
 
@@ -311,29 +311,29 @@ namespace ds {
         // Find eigenvalues and eigenvectors from generalized eigenequation of the residual matrix.
         residual_matrix_type C(E.transpose() * E);
 
-        std::ofstream myfile;
-        myfile.open ("C.txt");
-            myfile << C;
-        myfile.close();
+//        std::ofstream myfile;
+//        myfile.open ("C.txt");
+//            myfile << C;
+//        myfile.close();
 
         C /= (n * N * (n - 1) * (n - 1));
 
-        myfile.open ("C_div.txt");
-            myfile << C;
-        myfile.close();
+//        myfile.open ("C_div.txt");
+//            myfile << C;
+//        myfile.close();
 
 
         const eigen_solver_type eigen_solver(C, Eigen::ComputeEigenvectors);
         const eigenvectors_matrix_type &V = eigen_solver.eigenvectors();
         const eigenvalues_vector_type &D = eigen_solver.eigenvalues(); // The eigenvalues are sorted in increasing order.
 
-        myfile.open ("V.txt");
-            myfile << V;
-        myfile.close();
+//        myfile.open ("V.txt");
+//            myfile << V;
+//        myfile.close();
 
-        myfile.open ("D.txt");
-            myfile << D;
-        myfile.close();
+//        myfile.open ("D.txt");
+//            myfile << D;
+//        myfile.close();
 
         // Get squared correlation ratio associated with the k-th non-trivial solution.
         rho.resize(n - 1);
@@ -341,9 +341,9 @@ namespace ds {
             rho[i] = sqrt(D[n - i - 1]);
         }
 
-        myfile.open ("rho.txt");
-            myfile << rho;
-        myfile.close();
+//        myfile.open ("rho.txt");
+//            myfile << rho;
+//        myfile.close();
 
         // Get the weight of the columns.
         resulting_x_matrix_type x(n, n - 1);
@@ -354,9 +354,9 @@ namespace ds {
             }
         }
 
-        myfile.open ("x.txt");
-            myfile << x;
-        myfile.close();
+//        myfile.open ("x.txt");
+//            myfile << x;
+//        myfile.close();
     
         // Compute the constant multiplier for adjusting the unit of x.
         resulting_x_matrix_type x_sqr(n, n - 1);
@@ -367,28 +367,28 @@ namespace ds {
             }
         }
 
-        myfile.open ("x_sqr.txt");
-            myfile << x_sqr;
-        myfile.close();
+//        myfile.open ("x_sqr.txt");
+//            myfile << x_sqr;
+//        myfile.close();
 
         const real_type ft = N * n * (n - 1); // The total number of responses.
 
-        myfile.open ("valor_ft.txt");
-            myfile << ft;
-        myfile.close();
+//        myfile.open ("valor_ft.txt");
+//            myfile << ft;
+//        myfile.close();
 
         const Eigen::DiagonalWrapper<const scalar_row_vector_type> Dc(row_vector_type::Constant(n, N * (n - 1))); // The marginal frequency of responses for cols.
         const resulting_x_matrix_type fullDc = Dc;
 
-        myfile.open ("Dc.txt");
-            myfile << fullDc;
-        myfile.close();
+//        myfile.open ("Dc.txt");
+//            myfile << fullDc;
+//        myfile.close();
 
         const resulting_x_matrix_type &T = Dc * x_sqr;
 
-        myfile.open ("T.txt");
-            myfile << T;
-        myfile.close();
+//        myfile.open ("T.txt");
+//            myfile << T;
+//        myfile.close();
 
         resulting_vector_type cc(n - 1);
 
@@ -401,9 +401,9 @@ namespace ds {
             cc[i2] = sqrt(ft / sum);
         }
 
-        myfile.open ("cc.txt");
-            myfile << cc;
-        myfile.close();
+//        myfile.open ("cc.txt");
+//            myfile << cc;
+//        myfile.close();
 
         // Compute the normed weights for columns.
         x_normed.resize(n, n - 1);
@@ -414,30 +414,30 @@ namespace ds {
             }
         }
 
-        myfile.open ("x_normed.txt");
-            myfile << x_normed;
-        myfile.close();
+//        myfile.open ("x_normed.txt");
+//            myfile << x_normed;
+//        myfile.close();
 
-        // Compute the normed weights for rows.
-        const real_type fr = n * (n - 1); // The marginal frequency of responses for rows.
+//        // Compute the normed weights for rows.
+//        const real_type fr = n * (n - 1); // The marginal frequency of responses for rows.
 
-        myfile.open ("valor_fr.txt");
-            myfile << fr;
-        myfile.close();
+//        myfile.open ("valor_fr.txt");
+//            myfile << fr;
+//        myfile.close();
 
-        y_normed = E * x_normed;
+//        y_normed = E * x_normed;
 
-        for (size_type i2 = 0; i2 < (n - 1); ++i2) {
-            const real_type t = 1 / (rho[i2] * fr);
+//        for (size_type i2 = 0; i2 < (n - 1); ++i2) {
+//            const real_type t = 1 / (rho[i2] * fr);
 
-            for (size_type i1 = 0; i1 < N; ++i1) {
-                y_normed(i1, i2) *= t;
-            }
-        }
+//            for (size_type i1 = 0; i1 < N; ++i1) {
+//                y_normed(i1, i2) *= t;
+//            }
+//        }
 
-        myfile.open ("y_normed.txt");
-            myfile << y_normed;
-        myfile.close();
+//        myfile.open ("y_normed.txt");
+//            myfile << y_normed;
+//        myfile.close();
 
         // Compute the projected weights.
         x_projected.resize(n, n - 1);
@@ -448,35 +448,35 @@ namespace ds {
             }
         }
 
-        myfile.open ("x_projected.txt");
-            myfile << x_projected;
-        myfile.close();
+//        myfile.open ("x_projected.txt");
+//            myfile << x_projected;
+//        myfile.close();
 
-        y_projected.resize(N, n - 1);
+//        y_projected.resize(N, n - 1);
 
-        for (size_type i1 = 0; i1 < N; ++i1) {
-            for (size_type i2 = 0; i2 < (n - 1); ++i2) {
-                y_projected(i1, i2) = y_normed(i1, i2) * rho[i2];
-            }
-        }
+//        for (size_type i1 = 0; i1 < N; ++i1) {
+//            for (size_type i2 = 0; i2 < (n - 1); ++i2) {
+//                y_projected(i1, i2) = y_normed(i1, i2) * rho[i2];
+//            }
+//        }
 
-        myfile.open ("y_projected.txt");
-            myfile << y_projected;
-        myfile.close();
+//        myfile.open ("y_projected.txt");
+//            myfile << y_projected;
+//        myfile.close();
 
-        // Compute the total variance explained by each solution.
-        delta.resize(n - 1);
+//        // Compute the total variance explained by each solution.
+//        delta.resize(n - 1);
 
-        real_type sum_rho_sqr = 0;
-        for (size_type i = 0; i < (n - 1); ++i) {
-            sum_rho_sqr += (delta[i] = D[n - i - 1]);
-        }
+//        real_type sum_rho_sqr = 0;
+//        for (size_type i = 0; i < (n - 1); ++i) {
+//            sum_rho_sqr += (delta[i] = D[n - i - 1]);
+//        }
 
-        delta *= 100 / sum_rho_sqr;
+//        delta *= 100 / sum_rho_sqr;
 
-        myfile.open ("delta.txt");
-            myfile << delta;
-        myfile.close();
+//        myfile.open ("delta.txt");
+//            myfile << delta;
+//        myfile.close();
 
     }
 

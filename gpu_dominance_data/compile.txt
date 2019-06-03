@@ -1,0 +1,3 @@
+ nvcc main.cu TimingCPU.cpp TimingGPU.cu -lcusolver -std=c++11 -o main2 -I /home/eduardovera/libs/CUSP
+ 
+ ./main "toybase.txt"

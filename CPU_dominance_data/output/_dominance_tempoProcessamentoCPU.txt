@@ -1,0 +1,4 @@
+Nome arquivo: ../bases/toybase.txt
+Matriz formato: [3,9]
+Tempo calcular em CPU (ms):1.149
+Matriz Xproject: [9 , 8 ]

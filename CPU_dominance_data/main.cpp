@@ -11,13 +11,15 @@
 #include "dual_scaling.h"
 #include "leitorbasenumerica.h"
 
+// --- Timing includes
+#include "TimingCPU.h"
+
 typedef std::chrono::high_resolution_clock Time;
 typedef std::chrono::milliseconds ms;
 typedef std::chrono::duration<float> fsec;
 
 const double LIMITE_INFERIOR_DELTA = 1e-8;
 typedef double real_type;
-typedef double index;
 
 typedef Eigen::Matrix<real_type, Eigen::Dynamic, Eigen::Dynamic>	dynamic_size_matrix;
 typedef Eigen::Matrix<real_type, Eigen::Dynamic, 1>					column_vector_type;
@@ -41,6 +43,9 @@ int main(int argc, char* argv[]){
     if(argc != 2)
         return 1;
 
+    TimingCPU timer_CPU;
+    timer_CPU.StartCounter();
+
     std::string strFile = argv[1];
     std::string strPrefixFile = strFile.substr(strFile.find_last_of("/")+1,strFile.find("."));
 
@@ -49,28 +54,18 @@ int main(int argc, char* argv[]){
     dynamic_size_matrix y_normedR, y_projectedR;
     row_vector_type rhoR, deltaR;
 
-    auto t0 = Time::now();
-      auto baseDominance = getMatrix(strFile);
-      auto matrix = ro(baseDominance.getMatrix());
-    auto t1 = Time::now();
-
-    fsec fs = t1 -t0;
+    auto baseDominance = getMatrix(strFile);
+    auto matrix = ro(baseDominance.getMatrix());
 
     std::cout << "Started Dual Scaling " << endl;
-    t0 = Time::now();
-      ds::dual_scaling(matrix, x_normedR, y_normedR, x_projectedR, y_projectedR, rhoR, deltaR);
-    t1 = Time::now();
-
-    fsec calculo = t1 -t0;
+    ds::dual_scaling(matrix, x_normedR, y_normedR, x_projectedR, y_projectedR, rhoR, deltaR);
 
     std::ofstream myfile;
-      myfile.open (strPrefixFile + "_dominance_tempoProcessamentoCPU.txt");
+      myfile.open ("./output/" + strPrefixFile + "_dominance_tempoProcessamentoCPU.txt");
       myfile << "Nome arquivo: " << strFile << std::endl;
       myfile << "Matriz formato: [" << baseDominance.getSizeTransation() << "," << baseDominance.getSizeColumn() << "]" << std::endl;
-      myfile << "Tempo criar matriz entrada (s):" << fs.count() << std::endl;
-      myfile << "Tempo calcular em CPU (s):" << calculo.count() << std::endl;
+      myfile << "Tempo calcular em CPU (ms):" <<  timer_CPU.GetCounter() << std::endl;
       myfile << "Matriz Xproject: [" << x_projectedR.rows() << " , " << x_projectedR.cols() << " ]" << std::endl;
-      myfile << "Matriz Yproject: [" << y_projectedR.rows() << " , " << y_projectedR.cols() << " ]" << std::endl;
     myfile.close();
 
     std::cout << "Finished with success!" << std::endl;
