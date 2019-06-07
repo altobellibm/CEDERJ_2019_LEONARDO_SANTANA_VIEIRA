@@ -1,0 +1,4 @@
+Nome arquivo: ../bases/db_50_1000.dat
+Matriz formato: [1000,50]
+Tempo calcular em CPU (ms):74.408
+Matriz Xproject: [50 , 49 ]
