@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <chrono>
 
 #include <cusolverDn.h>
 
@@ -19,9 +20,7 @@
 #include <thrust/tabulate.h>
 #include <thrust/execution_policy.h>
 
-// --- Timing includes
-#include "TimingCPU.h"
-#include "TimingGPU.cuh"
+#include "multShare.h"
 
 using namespace std;
 
@@ -70,6 +69,23 @@ struct is_true: thrust::unary_function<T, T> {
 	bool operator()(const T &x)
 	{
 		return (x % col) != 0;
+	}
+};
+
+template<typename T>
+struct sub_matrix: thrust::unary_function<T, T> {
+	T col;
+	T row;
+	T pitch;
+
+	sub_matrix(T _c, T _r, T _p) :
+			col(_c), row(_r), pitch(_p) {
+	};
+
+	__host__ __device__
+	bool operator()(const T &x)
+	{
+		return  (x % (int)pitch) < (int) col && (x / (int)pitch) < (int)row;
 	}
 };
 
@@ -148,6 +164,78 @@ bool svd(int M, cusp::array2d<type, cusp::device_memory>& M_denseHM,
 	return 1;
 }
 
+int getmultiple16sizeMatriz(int n){
+	if (n % 16)
+    	n = n + (16 - n % 16);
+    return n;
+}
+
+void multiply(Array2d & A, Array2d& B, Array2d& C){
+	
+	// Load A and B to device memory
+	Array2d A_new(getmultiple16sizeMatriz(A.num_rows), getmultiple16sizeMatriz(A.num_cols));
+	cusp::array1d<int,cusp::device_memory> index(A_new.num_rows*A_new.num_cols);
+  	thrust::sequence(index.begin(), index.end(),0);	
+  	A_new(0,0) = 0; A_new(0,1) = 1; A_new(0,2) = 2;
+    A_new(1,0) = 3; A_new(1,1) = 4; A_new(1,2) = 5;
+    A_new(2,0) = 6; A_new(2,1) = 7; A_new(2,2) = 8;
+
+   A 1 2
+     3 4
+     
+   A_new
+    1 2 0
+    3 4 0
+    0 0 0
+
+	cusp::print(A_new);
+
+	Matrix d_A;
+	d_A.width = d_A.stride = A_new.num_cols;
+	d_A.height = A_new.num_rows;
+	thrust::device_ptr<float> dev_ptr_A = &(A_new.values[0]);
+	d_A.elements = thrust::raw_pointer_cast(dev_ptr_A);
+
+	Array2d B_new(getmultiple16sizeMatriz(B.num_rows), getmultiple16sizeMatriz(B.num_cols));
+	B_new(0,0) = 0; B_new(0,1) = 1; B_new(0,2) = 2;
+    B_new(1,0) = 3; B_new(1,1) = 4; B_new(1,2) = 5;
+    B_new(2,0) = 6; B_new(2,1) = 7; B_new(2,2) = 8;
+
+	cusp::print(B_new);
+
+	Matrix d_B;
+	d_B.width = d_B.stride = B_new.num_cols;
+	d_B.height = B_new.num_rows;
+	thrust::device_ptr<float> dev_ptr_B = &(B_new.values[0]);
+	d_B.elements = thrust::raw_pointer_cast(dev_ptr_B);
+
+	Array2d C_new(getmultiple16sizeMatriz(C.num_rows), getmultiple16sizeMatriz(C.num_cols));
+	// Allocate C in device memory
+	Matrix d_C;
+	d_C.width = d_C.stride = C_new.num_cols;
+	d_C.height = C_new.num_rows;
+	auto size = d_C.width * d_C.height * sizeof(float);
+	auto err = cudaMalloc(&d_C.elements, size);
+	printf("CUDA malloc C: %s\n",cudaGetErrorString(err));
+
+	MatMul(d_A,d_B,d_C);
+
+	thrust::device_ptr<type> dev_ptr_S(d_C.elements);
+	thrust::copy(thrust::device, dev_ptr_S, dev_ptr_S + (d_C.width*d_C.height), C_new.values.begin());
+	
+	cusp::array1d<int,cusp::device_memory> index_(C_new.num_rows*C_new.num_cols);
+  	thrust::sequence(index_.begin(), index_.end(),0);
+  	thrust::copy_if( dev_ptr_S,  
+  		             dev_ptr_S + (d_C.width*d_C.height), 
+  		             index_.begin(),  
+  		             C.values.begin(), 
+  		             sub_matrix<int>(C.num_rows,C.num_cols,C_new.num_cols));
+	
+  	cudaFree(d_C.elements);
+	cusp::print(C);
+
+}
+
 int main(int argc, char *argv[]) {
 
 	if (argc != 2) {
@@ -156,15 +244,13 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	TimingCPU timer_CPU;
-	timer_CPU.StartCounter();
-
-	TimingGPU timer_GPU;
-	timer_GPU.StartCounter();
-
+	//auto start = std::chrono::high_resolution_clock::now();
 	//******************** ler base de dados *************************
+	std::string strFile = argv[1];
+    std::string strPrefixFile = strFile.substr(strFile.find_last_of("/")+1,strFile.find(".dat")-4);
+
 	ifstream file;
-	file.open(argv[1]);
+	file.open(strFile);
 
 	if(!file.is_open()){
 		std::cout << "Error opening file" << std::endl;
@@ -191,8 +277,10 @@ int main(int argc, char *argv[]) {
 	file.close();
 
 	std::cout << "linha " << intNrLinhas << " colunas " << intNrColunas << std::endl;
-	Array2d E(intNrLinhas, intNrColunas);
+	
+	cudaSetDevice(1); // selecionar placa de video Tesla K40c
 
+	Array2d E(intNrLinhas, intNrColunas);
 	thrust::copy(database.begin(), database.end(), E.values.begin());
 
 	//cusp::print(E);
@@ -215,18 +303,17 @@ int main(int argc, char *argv[]) {
 
 	cusp::transpose(E, matrizTransposta);
 
-	//cusp::print(matrizTransposta);
-
-	Array2d C;
-
-	cusp::multiply(matrizTransposta, E, C);
+	cusp::print(matrizTransposta);
+	
+	Array2d C(E.num_cols, E.num_cols);
+	multiply(matrizTransposta, E, C);
 
 	//cusp::print(C);
 
-	thrust::transform(C.values.begin(), C.values.end(), C.values.begin(),
-			cusp::divide_value<type>(
-					E.num_cols * E.num_rows * (E.num_cols - 1)
-							* (E.num_cols - 1)));
+	// thrust::transform(C.values.begin(), C.values.end(), C.values.begin(),
+	// 		cusp::divide_value<type>(
+	// 				E.num_cols * E.num_rows * (E.num_cols - 1)
+	// 						* (E.num_cols - 1)));
 
 	//cusp::print(C);
 	
@@ -361,10 +448,21 @@ int main(int argc, char *argv[]) {
   	//*************************** GPU para Memória principal **********************
  	cusp::array2d<type,cusp::host_memory> out(x_project);
 
+	auto finish = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::ratio<1> > elapsed_seconds = finish - start;
+	auto time = elapsed_seconds.count();
+
 	//cusp::print(x_project);
 
-    std::cout << "X_project: liha = "<< x_project.num_rows <<", colunas = " << x_project.num_cols <<std::endl;
-	std::cout << "CPU Timing = " << timer_CPU.GetCounter() << " ms" << std::endl;
-	std::cout << "GPU Timing = " << timer_GPU.GetCounter() << " ms" << std::endl;
+	std::ofstream myfile;
+      myfile.open ("./output/" + strPrefixFile + "_dominance_tempoProcessamentoGPU.txt");
+      myfile << "Nome arquivo: " << strPrefixFile << std::endl;
+      myfile << "Matriz formato: [" << E.num_rows << "," << E.num_cols << "]" << std::endl;
+      myfile << "Tempo calcular em GPU (segundo):" <<  time << std::endl;
+      myfile << "Matriz Xproject: [" << x_project.num_rows << " , " << x_project.num_cols << " ]" << std::endl;
+    myfile.close();
+
+    std::cout << "Finished with success!" << std::endl;
+*/
 	return 0;
 }
