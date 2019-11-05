@@ -4,6 +4,8 @@
 
 #include <cusolverDn.h>
 
+#include <cublas_v2.h>
+
 #include <cusp/array1d.h>
 #include <cusp/array2d.h>
 #include <cusp/convert.h>
@@ -179,7 +181,7 @@ void multiply(Array2d & A, Array2d& B, Array2d& C){
   	A_new(0,0) = 0; A_new(0,1) = 1; A_new(0,2) = 2;
     A_new(1,0) = 3; A_new(1,1) = 4; A_new(1,2) = 5;
     A_new(2,0) = 6; A_new(2,1) = 7; A_new(2,2) = 8;
-
+/*
    A 1 2
      3 4
      
@@ -187,7 +189,7 @@ void multiply(Array2d & A, Array2d& B, Array2d& C){
     1 2 0
     3 4 0
     0 0 0
-
+*/
 	cusp::print(A_new);
 
 	Matrix d_A;
@@ -244,7 +246,7 @@ int main(int argc, char *argv[]) {
 		return 1;
 	}
 
-	//auto start = std::chrono::high_resolution_clock::now();
+	auto start = std::chrono::high_resolution_clock::now();
 	//******************** ler base de dados *************************
 	std::string strFile = argv[1];
     std::string strPrefixFile = strFile.substr(strFile.find_last_of("/")+1,strFile.find(".dat")-4);
@@ -275,46 +277,69 @@ int main(int argc, char *argv[]) {
 	}
 
 	file.close();
-
+    
 	std::cout << "linha " << intNrLinhas << " colunas " << intNrColunas << std::endl;
 	
 	cudaSetDevice(1); // selecionar placa de video Tesla K40c
 
 	Array2d E(intNrLinhas, intNrColunas);
 	thrust::copy(database.begin(), database.end(), E.values.begin());
-
-	//cusp::print(E);
+    
+    //teste
+	//std::cout << "E:" << std::endl;
+    //cusp::print(E);
 
 	//******************** E*-2 *************************
 
 	thrust::transform(E.values.begin(), E.values.end(),
 			E.values.begin(), cusp::multiplies_value<int>(-2));
-
-	//cusp::print(E);
+    
+    //teste
+	//std::cout << "E*-2:" << std::endl;
+    //cusp::print(E);
 
 	//******************** E*col+1 *************************
 	thrust::transform(E.values.begin(), E.values.end(),
 			E.values.begin(), cusp::plus_value<int>(E.num_cols + 1));
 
-	//cusp::print(E);
+	//teste
+	//std::cout << "E*col+1:" << std::endl;
+    //cusp::print(E);
 
 	//*********************************************
 	Array2d matrizTransposta;
 
 	cusp::transpose(E, matrizTransposta);
-
-	cusp::print(matrizTransposta);
+    
+    //teste
+	//std::cout << "E Transposta:" << std::endl;
+	//cusp::print(matrizTransposta);
 	
 	Array2d C(E.num_cols, E.num_cols);
-	multiply(matrizTransposta, E, C);
-
+	//multiply(matrizTransposta, E, C);
+    //testemultiply
+    //cusp::multiply(matrizTransposta, E, C);
+    //std::cout << "C:" << std::endl;
+	//cusp::print(C);
+    cublasHandle_t h;
+    cublasCreate(&h);
+    float alpha = 1.0f;
+    float beta = 0.0f;
+    //cublasSgemm(h, CUBLAS_OP_N, CUBLAS_OP_N, B.num_cols, A.num_rows, A.num_cols, &alpha, thrust::raw_pointer_cast(B.values.data()), B.num_cols, thrust::raw_pointer_cast(A.values.data()), A.num_cols, &beta, thrust::raw_pointer_cast(C.values.data()), B.num_cols);
+    cublasSgemm(h, CUBLAS_OP_N, CUBLAS_OP_N, E.num_cols, matrizTransposta.num_rows, matrizTransposta.num_cols, &alpha, thrust::raw_pointer_cast(E.values.data()), E.num_cols, thrust::raw_pointer_cast(matrizTransposta.values.data()), matrizTransposta.num_cols, &beta, thrust::raw_pointer_cast(C.values.data()), E.num_cols);
+    
+    
+    //teste
+	//std::cout << "C:" << std::endl;
 	//cusp::print(C);
 
-	// thrust::transform(C.values.begin(), C.values.end(), C.values.begin(),
-	// 		cusp::divide_value<type>(
-	// 				E.num_cols * E.num_rows * (E.num_cols - 1)
-	// 						* (E.num_cols - 1)));
+	thrust::transform(C.values.begin(), C.values.end(), C.values.begin(),
+        cusp::divide_value<type>(
+        E.num_cols * E.num_rows * (E.num_cols - 1)
+            * (E.num_cols - 1)));
 
+    //teste
+	//std::cout << "C_div:" << std::endl;
 	//cusp::print(C);
 	
 	//******************** Inicio da Decomposicao *************************
@@ -325,55 +350,114 @@ int main(int argc, char *argv[]) {
 	//std::cout << "Inicio da Decomposicao" << std::endl;
 	svd(C.num_cols, C, U, S);
 
-	//cusp::print(U);
+    //teste
+	//std::cout << "U:" << std::endl;
+    //cusp::print(U);
 
+    //teste
+    //std::cout << "S:" << std::endl;
 	//cusp::print(S);
 
+    /*
+    // Teste
+    U(0, 0) = 0.445644;     U(0, 1) = -0.12139;     U(0, 2) = -0.00336875;  U(0, 3) = -0.617952;    U(0, 4) = 0.30292;      U(0, 5) = 0.104751;     U(0, 6) = 0.161157;     U(0, 7) = -0.19879;     U(0, 8) = 0.486383;
+    U(1, 0) = -0.711218;    U(1, 1) = 0.0423734;    U(1, 2) = 0.0552392;    U(1, 3) = -0.441138;    U(1, 4) = 0.0339571;    U(1, 5) = 0.0783436;    U(1, 6) = -0.00482367;  U(1, 7) = 0.470035;     U(1, 8) = 0.257823;
+    U(2, 0) = 0.31457;      U(2, 1) = -0.0603901;   U(2, 2) = -0.0471155;   U(2, 3) = 0.0886266;    U(2, 4) = -0.100349;    U(2, 5) = 0.76635;      U(2, 6) = 0.103892;     U(2, 7) = 0.515145;     U(2, 8) = -0.117446;
+    U(3, 0) = 0.282895;     U(3, 1) = 0.608804;     U(3, 2) = -0.263212;    U(3, 3) = -0.367443;    U(3, 4) = 0.0698713;    U(3, 5) = -0.262026;    U(3, 6) = -0.210852;    U(3, 7) = 0.299143;     U(3, 8) = -0.370876;
+    U(4, 0) = -0.244688;    U(4, 1) = 0.279298;     U(4, 2) = -0.70117;     U(4, 3) = -0.0279127;   U(4, 4) = -0.212571;    U(4, 5) = 0.328237;     U(4, 6) = 0.175306;     U(4, 7) = -0.423009;    U(4, 8) = 0.0843047;
+    U(5, 0) = -0.12212;     U(5, 1) = 0.253274;     U(5, 2) = 0.37022;      U(5, 3) = -0.0908042;   U(5, 4) = 0.170505;     U(5, 5) = 0.452362;     U(5, 6) = -0.623452;    U(5, 7) = -0.380869;    U(5, 8) = -0.0904064;
+    U(6, 0) = 0.189107;     U(6, 1) = 0.291328;     U(6, 2) = 0.222269;     U(6, 3) = 0.0265378;    U(6, 4) = -0.744001;    U(6, 5) = -0.0819397;   U(6, 6) = -0.158411;    U(6, 7) = 0.0552435;    U(6, 8) = 0.490776;
+    U(7, 0) = -0.00735859;  U(7, 1) = -0.496706;    U(7, 2) = -0.0182501;   U(7, 3) = -0.500389;    U(7, 4) = -0.506722;    U(7, 5) = -0.000417037; U(7, 6) = -0.120787;    U(7, 7) = -0.147379;    U(7, 8) = -0.457635;
+    U(8, 0) = -0.0773703;   U(8, 1) = 0.368016;     U(8, 2) = 0.496989;     U(8, 3) = -0.143339;    U(8, 4) = -0.0870132;   U(8, 5) = 0.0886237;    U(8, 6) = 0.677971;     U(8, 7) = -0.189519;    U(8, 8) = -0.282924;
+    
+    // Teste
+    S[0] = -5.05182e-017;
+    S[1] = -8.22593e-018;
+    S[2] = -4.1709e-018;
+    S[3] = 1.18595e-018;
+    S[4] = 7.85299e-018;
+    S[5] = 1.23348e-017;
+    S[6] = 0.0396248;
+    S[7] = 0.152448;
+    S[8] = 0.224594;
+    */
+    
+    /*
 	// Teste
-	// U(0, 0) =  -0.486383 ;U(0, 1) =    0.19879; U(0, 2) =   -0.161157; U(0, 3) =   -0.104751; U(0, 4) =    -0.30292; U(0, 5) =    0.617952; U(0, 6) =  0.00336875; U(0, 7) =     0.12139;
-	// U(1, 0) =  -0.257823 ;U(1, 1) =  -0.470035; U(1, 2) =  0.00482367; U(1, 3) =  -0.0783436; U(1, 4) =  -0.0339571; U(1, 5) =    0.441138; U(1, 6) =  -0.0552392; U(1, 7) =  -0.0423734;
-	// U(2, 0) =   0.117446 ;U(2, 1) =  -0.515145; U(2, 2) =   -0.103892; U(2, 3) =    -0.76635; U(2, 4) =    0.100349; U(2, 5) =  -0.0886266; U(2, 6) =   0.0471155; U(2, 7) =   0.0603901;
-	// U(3, 0) =   0.370876 ;U(3, 1) =  -0.299143; U(3, 2) =    0.210852; U(3, 3) =    0.262026; U(3, 4) =  -0.0698713; U(3, 5) =    0.367443; U(3, 6) =    0.263212; U(3, 7) =   -0.608804;
-	// U(4, 0) = -0.0843047 ;U(4, 1) =   0.423009; U(4, 2) =   -0.175306; U(4, 3) =   -0.328237; U(4, 4) =    0.212571; U(4, 5) =   0.0279127; U(4, 6) =     0.70117; U(4, 7) =   -0.279298;
-	// U(5, 0) =  0.0904064 ;U(5, 1) =   0.380869; U(5, 2) =    0.623452; U(5, 3) =   -0.452362; U(5, 4) =   -0.170505; U(5, 5) =   0.0908042; U(5, 6) =    -0.37022; U(5, 7) =   -0.253274;
-	// U(6, 0) =  -0.490776 ;U(6, 1) = -0.0552435; U(6, 2) =    0.158411; U(6, 3) =   0.0819397; U(6, 4) =    0.744001; U(6, 5) =  -0.0265378; U(6, 6) =   -0.222269; U(6, 7) =   -0.291328;
-	// U(7, 0) =   0.457635 ;U(7, 1) =   0.147379; U(7, 2) =    0.120787; U(7, 3) = 0.000417037; U(7, 4) =    0.506722; U(7, 5) =    0.500389; U(7, 6) =   0.0182501; U(7, 7) =    0.496706;
-	// U(8, 0) =   0.282924 ;U(8, 1) =   0.189519; U(8, 2) =   -0.677971; U(8, 3) =  -0.0886237; U(8, 4) =   0.0870132; U(8, 5) =    0.143339; U(8, 6) =   -0.496989; U(8, 7) =   -0.368016;
+	U(0, 0) =  -0.486383 ;U(0, 1) =    0.19879; U(0, 2) =   -0.161157; U(0, 3) =   -0.104751; U(0, 4) =    -0.30292; U(0, 5) =    0.617952; U(0, 6) =  0.00336875; U(0, 7) =     0.12139;
+	U(1, 0) =  -0.257823 ;U(1, 1) =  -0.470035; U(1, 2) =  0.00482367; U(1, 3) =  -0.0783436; U(1, 4) =  -0.0339571; U(1, 5) =    0.441138; U(1, 6) =  -0.0552392; U(1, 7) =  -0.0423734;
+	U(2, 0) =   0.117446 ;U(2, 1) =  -0.515145; U(2, 2) =   -0.103892; U(2, 3) =    -0.76635; U(2, 4) =    0.100349; U(2, 5) =  -0.0886266; U(2, 6) =   0.0471155; U(2, 7) =   0.0603901;
+	U(3, 0) =   0.370876 ;U(3, 1) =  -0.299143; U(3, 2) =    0.210852; U(3, 3) =    0.262026; U(3, 4) =  -0.0698713; U(3, 5) =    0.367443; U(3, 6) =    0.263212; U(3, 7) =   -0.608804;
+	U(4, 0) = -0.0843047 ;U(4, 1) =   0.423009; U(4, 2) =   -0.175306; U(4, 3) =   -0.328237; U(4, 4) =    0.212571; U(4, 5) =   0.0279127; U(4, 6) =     0.70117; U(4, 7) =   -0.279298;
+	U(5, 0) =  0.0904064 ;U(5, 1) =   0.380869; U(5, 2) =    0.623452; U(5, 3) =   -0.452362; U(5, 4) =   -0.170505; U(5, 5) =   0.0908042; U(5, 6) =    -0.37022; U(5, 7) =   -0.253274;
+	U(6, 0) =  -0.490776 ;U(6, 1) = -0.0552435; U(6, 2) =    0.158411; U(6, 3) =   0.0819397; U(6, 4) =    0.744001; U(6, 5) =  -0.0265378; U(6, 6) =   -0.222269; U(6, 7) =   -0.291328;
+	U(7, 0) =   0.457635 ;U(7, 1) =   0.147379; U(7, 2) =    0.120787; U(7, 3) = 0.000417037; U(7, 4) =    0.506722; U(7, 5) =    0.500389; U(7, 6) =   0.0182501; U(7, 7) =    0.496706;
+	U(8, 0) =   0.282924 ;U(8, 1) =   0.189519; U(8, 2) =   -0.677971; U(8, 3) =  -0.0886237; U(8, 4) =   0.0870132; U(8, 5) =    0.143339; U(8, 6) =   -0.496989; U(8, 7) =   -0.368016;
 	   
 	   
-
-	// 	S[7] =-8.22593e-018;
-	// 	S[6] = -4.1709e-018;
-	// 	S[5] = 1.18595e-018;
-	// 	S[4] = 7.85299e-018;
-	// 	S[3] = 1.23348e-017;
-	// 	S[2] =    0.0396248;
-	// 	S[1] =     0.152448;
-	// 	S[0] =     0.224594;
-
+    // Teste
+	S[7] =-8.22593e-018;
+	S[6] = -4.1709e-018;
+	S[5] = 1.18595e-018;
+	S[4] = 7.85299e-018;
+	S[3] = 1.23348e-017;
+	S[2] =    0.0396248;
+	S[1] =     0.152448;
+	S[0] =     0.224594;
+    */
+    
+    //teste
+	//std::cout << "U:" << std::endl;
 	//cusp::print(U);
 
+    //teste
+	//std::cout << "S:" << std::endl;
 	//cusp::print(S);
 
 	//******************** Inicio da Decomposicao *************************
 
-	Array1d rho(E.num_cols - 1);
+	//Array1d rho(E.num_cols - 1);
 
+    Array1d rho(E.num_cols - 1);
+    
 	thrust::transform(S.begin(), S.end()-1, rho.begin(),
 			cusp::sqrt_functor<type>());
-
-	//std::cout << "Rho" << std::endl;
+			
+    //thrust::transform(S.rbegin(), S.rend() -1, rho.begin(),
+	//		cusp::sqrt_functor<type>());
+    
+	//std::cout << "Rho:" << std::endl;
 	//cusp::print(rho);
 
 	//*********************************************
 	Array2d x(E.num_cols, E.num_cols - 1);
 
   	cusp::array1d<int,cusp::device_memory> index(intNrColunas*intNrColunas);
-  	thrust::sequence(index.begin(), index.end(),1);
-  	//cusp::print(index);	
-  	thrust::copy_if( U.values.begin(),  U.values.end(), index.begin(),  x.values.begin(), is_true<int>(intNrColunas));
-	
-	//std::cout << "X" << std::endl;
+  	thrust::sequence(index.begin(), index.end(), 1);
+  	//std::cout << "index:" << std::endl;
+    //cusp::print(index);	
+  	
+    thrust::copy_if(U.values.begin(), U.values.end(), index.begin(), x.values.begin(), is_true<int>(intNrColunas));
+	//thrust::transform(x.values.begin(), x.values.end(),
+	//		x.values.begin(), cusp::multiplies_value<float>(-1));
+    
+    //std::cout << "X:" << std::endl;
+	//cusp::print(x);
+    
+    //Teste
+    /*
+    x(0, 0) = -0.486383;     x(0, 1) = 0.19879;       x(0, 2) = -0.161157;     x(0, 3) = -0.104751;     x(0, 4) = -0.30292;      x(0, 5) = 0.617952;      x(0, 6) = 0.00336875;    x(0, 7) = 0.12139;
+    x(1, 0) = -0.257823;     x(1, 1) = -0.470035;     x(1, 2) = 0.00482367;    x(1, 3) = -0.0783436;    x(1, 4) = -0.0339571;    x(1, 5) = 0.441138;      x(1, 6) = -0.0552392;    x(1, 7) = -0.0423734;
+    x(2, 0) = 0.117446;      x(2, 1) = -0.515145;     x(2, 2) = -0.103892;     x(2, 3) = -0.76635;      x(2, 4) = 0.100349;      x(2, 5) = -0.0886266;    x(2, 6) = 0.0471155;     x(2, 7) = 0.0603901;
+    x(3, 0) = 0.370876;      x(3, 1) = -0.299143;     x(3, 2) = 0.210852;      x(3, 3) = 0.262026;      x(3, 4) = -0.0698713;    x(3, 5) = 0.367443;      x(3, 6) = 0.263212;      x(3, 7) = -0.608804;
+    x(4, 0) = -0.0843047;    x(4, 1) = 0.423009;      x(4, 2) = -0.175306;     x(4, 3) = -0.328237;     x(4, 4) = 0.212571;      x(4, 5) = 0.0279127;     x(4, 6) = 0.70117;       x(4, 7) = -0.279298;
+    x(5, 0) = 0.0904064;     x(5, 1) = 0.380869;      x(5, 2) = 0.623452;      x(5, 3) = -0.452362;     x(5, 4) = -0.170505;     x(5, 5) = 0.0908042;     x(5, 6) = -0.37022;      x(5, 7) = -0.253274;
+    x(6, 0) = -0.490776;     x(6, 1) = -0.0552435;    x(6, 2) = 0.158411;      x(6, 3) = 0.0819397;     x(6, 4) = 0.744001;      x(6, 5) = -0.0265378;    x(6, 6) = -0.222269;     x(6, 7) = -0.291328;
+    x(7, 0) = 0.457635;      x(7, 1) = 0.147379;      x(7, 2) = 0.120787;      x(7, 3) = 0.000417037;   x(7, 4) = 0.506722;      x(7, 5) = 0.500389;      x(7, 6) = 0.0182501;     x(7, 7) = 0.496706;
+    x(8, 0) = 0.282924;      x(8, 1) = 0.189519;      x(8, 2) = -0.677971;     x(8, 3) = -0.0886237;    x(8, 4) = 0.0870132;     x(8, 5) = 0.143339;      x(8, 6) = -0.496989;     x(8, 7) = -0.368016;
+    */
+    
+	//std::cout << "X:" << std::endl;
 	//cusp::print(x);
 
 	//*********************************************
@@ -382,7 +466,7 @@ int main(int argc, char *argv[]) {
 	thrust::transform(x.values.begin(), x.values.end(), x_sqr.values.begin(),
 			cusp::square_functor<type>());
 
-	//std::cout << "x_sqr" << std::endl;
+	//std::cout << "x_sqr:" << std::endl;
 	//cusp::print(x_sqr);
 
 	int ft = intNrLinhas * intNrColunas * (intNrColunas - 1);
@@ -394,16 +478,18 @@ int main(int argc, char *argv[]) {
 	thrust::transform(T.values.begin(), T.values.end(),
 			T.values.begin(), cusp::multiplies_value<type>(intNrLinhas * (intNrColunas - 1)));
 
-	//std::cout << "T" << std::endl;
+    //std::cout << "T:" << std::endl;
 	//cusp::print(T);
 
     //*********************************************
   	cusp::array1d<int,cusp::device_memory> index_sum_t(intNrColunas);
   	cusp::array1d<type,cusp::device_memory> marginal_sum_t(intNrColunas-1);
 	
+    // ?
   	cusp::array2d<type,cusp::device_memory> T_T(intNrColunas,intNrLinhas);
     cusp::transpose(T, T_T);
-	//cusp::print(T_T);
+	//std::cout << "T Transposta:" << std::endl;
+    //cusp::print(T_T);
 
 	Array1d index_similar(intNrColunas*(intNrColunas - 1));
 	thrust::tabulate(thrust::device, index_similar.begin(), index_similar.end(), linear_index_to_row_index<int>(intNrColunas));
@@ -417,13 +503,13 @@ int main(int argc, char *argv[]) {
   						  thrust::equal_to<int>(), 
   						  thrust::plus<type>());
 	
-  	//std::cout << "cc" << std::endl;
+  	//std::cout << "cc:" << std::endl;
   	//cusp::print(marginal_sum_t);
 	
   	cusp::array1d<type,cusp::device_memory> cc(intNrColunas-1);
 	
   	thrust::transform(marginal_sum_t.begin(), marginal_sum_t.end(), cc.begin(), reciprocal_my<type>(type(ft)));
-	//std::cout << "cc" << std::endl;
+	//std::cout << "cc:" << std::endl;
   	//cusp::print(cc);
 	
 	//*********************************************
@@ -435,34 +521,36 @@ int main(int argc, char *argv[]) {
 		
 	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(index_X.begin(), x.values.begin())), thrust::make_zip_iterator(thrust::make_tuple(index_X.end(), x.values.end())), x_normed.values.begin(), column_by_vector<type>(thrust::raw_pointer_cast(cc.data()),(type)x.num_cols));
 
-    //std::cout << "x_normed" << std::endl;
+    //std::cout << "x_normed:" << std::endl;
   	//cusp::print(x_normed);
 	
   	//**************************************
   	cusp::array2d<type,cusp::device_memory> x_project(x.num_rows,x.num_cols);
 	
   	thrust::transform(thrust::make_zip_iterator(thrust::make_tuple(index_X.begin(), x_normed.values.begin())), thrust::make_zip_iterator(thrust::make_tuple(index_X.end(), x_normed.values.end())), x_project.values.begin(), column_by_vector<type>(thrust::raw_pointer_cast(rho.data()),(type)x.num_cols));
-	//std::cout << "x_project" << std::endl;
+	//std::cout << "x_project:" << std::endl;
   	//cusp::print(x_project);
   	
   	//*************************** GPU para Memória principal **********************
  	cusp::array2d<type,cusp::host_memory> out(x_project);
 
 	auto finish = std::chrono::high_resolution_clock::now();
-	std::chrono::duration<double, std::ratio<1> > elapsed_seconds = finish - start;
+	std::chrono::duration<double, std::ratio<1>> elapsed_seconds = finish - start;
 	auto time = elapsed_seconds.count();
 
+    //std::cout << "x_project:" << std::endl;
 	//cusp::print(x_project);
 
 	std::ofstream myfile;
+      //cout << strPrefixFile << endl;
       myfile.open ("./output/" + strPrefixFile + "_dominance_tempoProcessamentoGPU.txt");
       myfile << "Nome arquivo: " << strPrefixFile << std::endl;
       myfile << "Matriz formato: [" << E.num_rows << "," << E.num_cols << "]" << std::endl;
-      myfile << "Tempo calcular em GPU (segundo):" <<  time << std::endl;
-      myfile << "Matriz Xproject: [" << x_project.num_rows << " , " << x_project.num_cols << " ]" << std::endl;
+      myfile << "Tempo calcular em GPU (segundos): " <<  time << std::endl;
+      myfile << "Matriz Xproject: [" << x_project.num_rows << "," << x_project.num_cols << "]" << std::endl;
     myfile.close();
 
     std::cout << "Finished with success!" << std::endl;
-*/
+//*/
 	return 0;
 }

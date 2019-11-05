@@ -1,3 +1,7 @@
- nvcc main.cu multShare.h -lcusolver -std=c++11 -o main -I /home/eduardovera/libs/CUSP
+ nvcc main.cu -lcusolver -lcublas -std=c++11 -o main -I /home/eduardovera/libs/CUSP
  
  ./main "toybase.txt"
+
+ nvcc main.cu -lcusolver -lcublas -std=c++11 -o main -I .
+
+ nvidia-smi -L
