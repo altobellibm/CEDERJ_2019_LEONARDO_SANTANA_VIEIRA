@@ -1,0 +1,4 @@
+Nome arquivo: db_100_500.dat
+Matriz formato: [500,100]
+Tempo calcular em GPU (segundos): 0.3314
+Matriz Xproject: [100,99]

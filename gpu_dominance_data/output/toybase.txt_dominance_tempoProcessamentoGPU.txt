@@ -1,0 +1,4 @@
+Nome arquivo: toybase.txt
+Matriz formato: [3,9]
+Tempo calcular em GPU (segundos): 0.32141
+Matriz Xproject: [9,8]

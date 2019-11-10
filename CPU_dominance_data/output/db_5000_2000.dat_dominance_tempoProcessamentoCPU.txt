@@ -1,0 +1,4 @@
+Nome arquivo: ../bases/db_5000_2000.dat
+Matriz formato: [2000,5000]
+Tempo calcular em CPU (segundos):3075.48
+Matriz Xproject: [5000 , 4999 ]

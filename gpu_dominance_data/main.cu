@@ -278,9 +278,9 @@ int main(int argc, char *argv[]) {
 
 	file.close();
     
-	std::cout << "linha " << intNrLinhas << " colunas " << intNrColunas << std::endl;
+	//std::cout << "linha " << intNrLinhas << " colunas " << intNrColunas << std::endl;
 	
-	cudaSetDevice(1); // selecionar placa de video Tesla K40c
+	//cudaSetDevice(0); // selecionar placa de video Tesla K40c
 
 	Array2d E(intNrLinhas, intNrColunas);
 	thrust::copy(database.begin(), database.end(), E.values.begin());
