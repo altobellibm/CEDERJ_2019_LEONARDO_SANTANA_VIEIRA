@@ -22,7 +22,7 @@
 #include <thrust/tabulate.h>
 #include <thrust/execution_policy.h>
 
-#include "multShare.h"
+//#include "multShare.h"
 
 using namespace std;
 
@@ -91,6 +91,7 @@ struct sub_matrix: thrust::unary_function<T, T> {
 	}
 };
 
+/*
 template<typename T>
 struct is_diagonal: thrust::unary_function<T, T> {
 	T col;
@@ -106,6 +107,7 @@ struct is_diagonal: thrust::unary_function<T, T> {
 		return (x % (col + 1)) == 0;
 	}
 };
+*/
 
 template <typename T>
 	struct column_by_vector : public thrust::unary_function<T,T>
@@ -171,7 +173,7 @@ int getmultiple16sizeMatriz(int n){
     	n = n + (16 - n % 16);
     return n;
 }
-
+/*
 void multiply(Array2d & A, Array2d& B, Array2d& C){
 	
 	// Load A and B to device memory
@@ -181,7 +183,7 @@ void multiply(Array2d & A, Array2d& B, Array2d& C){
   	A_new(0,0) = 0; A_new(0,1) = 1; A_new(0,2) = 2;
     A_new(1,0) = 3; A_new(1,1) = 4; A_new(1,2) = 5;
     A_new(2,0) = 6; A_new(2,1) = 7; A_new(2,2) = 8;
-/*
+
    A 1 2
      3 4
      
@@ -189,7 +191,7 @@ void multiply(Array2d & A, Array2d& B, Array2d& C){
     1 2 0
     3 4 0
     0 0 0
-*/
+
 	cusp::print(A_new);
 
 	Matrix d_A;
@@ -237,6 +239,7 @@ void multiply(Array2d & A, Array2d& B, Array2d& C){
 	cusp::print(C);
 
 }
+*/
 
 int main(int argc, char *argv[]) {
 

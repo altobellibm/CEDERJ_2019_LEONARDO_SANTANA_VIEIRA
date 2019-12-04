@@ -1,4 +1,0 @@
-Nome arquivo: ../bases/db_100_1000.dat
-Matriz formato: [1000,100]
-Tempo calcular em CPU (ms):245.912
-Matriz Xproject: [100 , 99 ]

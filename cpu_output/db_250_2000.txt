@@ -1,4 +1,0 @@
-Nome arquivo: ../bases/db_250_2000.dat
-Matriz formato: [2000,250]
-Tempo calcular em CPU (ms):2515.47
-Matriz Xproject: [250 , 249 ]
