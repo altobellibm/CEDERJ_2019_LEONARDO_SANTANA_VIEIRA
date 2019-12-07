@@ -74,6 +74,7 @@ struct is_true: thrust::unary_function<T, T> {
 	}
 };
 
+/*
 template<typename T>
 struct sub_matrix: thrust::unary_function<T, T> {
 	T col;
@@ -90,6 +91,7 @@ struct sub_matrix: thrust::unary_function<T, T> {
 		return  (x % (int)pitch) < (int) col && (x / (int)pitch) < (int)row;
 	}
 };
+*/
 
 /*
 template<typename T>
